@@ -77,5 +77,5 @@ const render = () => {
     }
 });
     input.addEventListener('compositionstart',()=>{composing=true;render();}); input.addEventListener('compositionupdate',render); input.addEventListener('compositionend',()=>{composing=false;render();}); app.querySelector('#stage').onclick=()=>input.focus(); app.querySelector('#restart').onclick=()=>start(item);app.querySelector('#exit').onclick=menu;window.onkeydown=e=>{if(e.key==='Escape')menu();};render();input.focus(); }
-  home();
+  menu();
 })();
