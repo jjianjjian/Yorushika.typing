@@ -75,7 +75,6 @@ const display = typed + target.slice(pos);
     const done=()=>{if(finished)return;finished=true;clearInterval(timer);input.blur();app.querySelector('#stage').insertAdjacentHTML('beforeend','<p class="meta">완료되었습니다.</p>');};
     input.addEventListener('input',e=>{if(!started){started=Date.now();timer=setInterval(tick,500);}keys=Math.max(keys,input.value.length); const r=render(); errors=lang==='korean'?r.kr.wrongJamoCount:[...input.value].filter((c,i)=>c!==target[i]).length;app.querySelector('#accuracy').textContent=`${Math.max(0,Math.round((keys-errors)/Math.max(keys,1)*100))}%`; if(!e.isComposing&&!composing&&((lang==='korean'&&r.kr.done)||(lang!=='korean'&&r.typed===target)))done();});
     input.addEventListener("keydown", (e) => {
-    input.addEventListener("keydown", (e) => {
     if (e.key !== " ") return;
 
     let pos = input.value.length;
