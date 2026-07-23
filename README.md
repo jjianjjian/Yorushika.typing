@@ -45,7 +45,7 @@ typing-practice/
 3. 파일을 추가/삭제/수정한 뒤에는 아래 명령을 실행해 목록을 다시 생성해야 사이트에 반영됩니다.
 
    ```
-   node scripts/build-manifest.js
+    node scripts/build-manifest.js
    ```
 
    (Node.js가 필요합니다. 없다면 https://nodejs.org 에서 설치하세요.)
