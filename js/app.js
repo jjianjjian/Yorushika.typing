@@ -699,10 +699,6 @@ if(current){
 
 });
 
-
-
-
-
 input.addEventListener(
 "keydown",
 e=>{
