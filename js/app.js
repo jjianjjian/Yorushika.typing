@@ -364,7 +364,32 @@ function skipEmptyLines(){
         state.target[pos] === "\n"
     ){
 
-        input.value += "\n";
+        function skipEmptyLines(){
+
+    let pos=input.value.length;
+
+
+    while(
+        state.target[pos]==="\n"
+    ){
+
+        pos++;
+
+    }
+
+
+    if(pos !== input.value.length){
+
+        input.value =
+            input.value +
+            state.target.slice(
+                input.value.length,
+                pos
+            );
+
+    }
+
+}
 
         pos++;
 
@@ -380,25 +405,21 @@ function render(){
         input.value;
 
 
-    let cursor =
-        typed.length;
+let cursor = typed.length;
 
 
+while(
+    state.target[cursor]==="\n"
+){
 
-    while(
-        state.target[cursor] === "\n"
-    ){
+    cursor++;
 
-        cursor++;
-
-    }
-
+}
 
 
-    const display =
-        typed +
-        state.target.slice(cursor);
-
+const display =
+typed +
+state.target.slice(cursor);
 
 
     const result =
@@ -520,7 +541,18 @@ function render(){
     app.querySelector("#progress")
         .textContent =
         `${Math.round(progress)}%`;
+const current =
+text.querySelector(".current");
 
+
+if(current){
+
+    current.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+    });
+
+}
 
 
     return result;
@@ -630,6 +662,17 @@ e=>{
 
     const result =
         render();
+        const current =
+text.querySelector(".current");
+
+if(current){
+
+    current.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+    });
+
+}
 
 
 
