@@ -1,7 +1,7 @@
 /* 자동 생성 파일입니다. 직접 수정하지 마세요.
    /data 폴더 내용을 바꾼 뒤 다음 명령으로 다시 생성하세요:
      node scripts/build-manifest.js
-   생성 시각: 2026-07-23T12:16:42.601Z */
+   생성 시각: 2026-07-23T12:23:29.732Z */
 window.DATA_MANIFEST = {
   "korean": {
     "works": [
@@ -28,5 +28,5 @@ window.DATA_MANIFEST = {
     "works": [],
     "shortPool": []
   },
-  "generatedAt": "2026-07-23T12:16:42.601Z"
+  "generatedAt": "2026-07-23T12:23:29.732Z"
 };
