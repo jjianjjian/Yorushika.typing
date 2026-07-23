@@ -21,7 +21,15 @@ const target = norm(raw);
 console.log("TARGET =", JSON.stringify(target)); app.innerHTML=`${nav()}<section class="panel"><h2>${esc(item.title||'무작위 문장')}</h2><div class="stats"><span>진행률 <b id="progress">0%</b></span><span>정확도 <b id="accuracy">100%</b></span><span>CPM <b id="cpm">0</b></span><span>시간 <b id="time">0:00</b></span></div><div class="bar"><i id="fill"></i></div><div class="stage" id="stage"><div class="text" id="text"></div><textarea class="capture" id="capture" aria-label="타자 입력" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div><div class="actions"><button id="restart">다시하기</button><button id="exit">종료</button></div></section>`; bindNav(); const input=app.querySelector('#capture'), text=app.querySelector('#text'); let composing=false, errors=0, keys=0;
 const render = () => {
     const typed = input.value;
-    const display = typed + target.slice(typed.length);
+
+let pos = typed.length;
+
+// 줄바꿈이 연속되면 자동으로 모두 건너뜀
+while (target[pos] === "\n") {
+    pos++;
+}
+
+const display = typed + target.slice(pos);
     const frag = document.createDocumentFragment();
     const kr = lang === 'korean' ? Hangul.evaluate(target, typed) : null;
 
@@ -67,15 +75,30 @@ const render = () => {
     const done=()=>{if(finished)return;finished=true;clearInterval(timer);input.blur();app.querySelector('#stage').insertAdjacentHTML('beforeend','<p class="meta">완료되었습니다.</p>');};
     input.addEventListener('input',e=>{if(!started){started=Date.now();timer=setInterval(tick,500);}keys=Math.max(keys,input.value.length); const r=render(); errors=lang==='korean'?r.kr.wrongJamoCount:[...input.value].filter((c,i)=>c!==target[i]).length;app.querySelector('#accuracy').textContent=`${Math.max(0,Math.round((keys-errors)/Math.max(keys,1)*100))}%`; if(!e.isComposing&&!composing&&((lang==='korean'&&r.kr.done)||(lang!=='korean'&&r.typed===target)))done();});
     input.addEventListener("keydown", (e) => {
-    if (
-        [" ", "Enter", "ArrowRight"].includes(e.key) &&
-        target[input.value.length] === "\n"
-    ) {
-        e.preventDefault();
+    input.addEventListener("keydown", (e) => {
+    if (e.key !== " ") return;
+
+    let pos = input.value.length;
+
+    // 줄바꿈이 아니면 원래 Space 입력
+    if (target[pos] !== "\n") return;
+
+    e.preventDefault();
+
+    // 연속된 줄바꿈 전부 통과
+    while (target[pos] === "\n") {
         input.value += "\n";
-        input.dispatchEvent(new Event("input"));
+        pos++;
     }
+
+    input.dispatchEvent(new Event("input", {
+        bubbles: true
+    }));
 });
+// 줄바꿈만 있는 구간은 자동 통과
+while (target[input.value.length] === "\n") {
+    input.value += "\n";
+}
     input.addEventListener('compositionstart',()=>{composing=true;render();}); input.addEventListener('compositionupdate',render); input.addEventListener('compositionend',()=>{composing=false;render();}); app.querySelector('#stage').onclick=()=>input.focus(); app.querySelector('#restart').onclick=()=>start(item);app.querySelector('#exit').onclick=menu;window.onkeydown=e=>{if(e.key==='Escape')menu();};render();input.focus(); }
   home();
 })();
