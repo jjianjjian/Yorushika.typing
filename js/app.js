@@ -2,7 +2,9 @@
   const app = document.querySelector('#app');
   const data = window.DATA_MANIFEST || {};
   let lang = 'korean', item = null, timer = null, started = 0, finished = false;
-  const norm = s => String(s || '').replace(/\s*\n+\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  const norm = s => String(s || '')
+  .replace(/\r\n/g, '\n')
+  .trim();
   const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const nav = () => `<div class="nav"><div class="langs">${['korean','english','japanese'].map(x=>`<button data-lang="${x}" class="${x===lang?'active':''}">${x==='korean'?'한국어':x==='english'?'English':'日本語'}</button>`).join('')}</div></div>`;
   function bindNav(){ app.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{lang=b.dataset.lang; menu();}); }
