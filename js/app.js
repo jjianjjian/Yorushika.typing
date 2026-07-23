@@ -356,47 +356,26 @@ function evaluate(){
 
 function skipEmptyLines(){
 
-    let pos =
-        input.value.length;
+    let pos = input.selectionStart;
 
 
     while(
         state.target[pos] === "\n"
     ){
 
-        function skipEmptyLines(){
-
-    let pos=input.value.length;
-
-
-    while(
-        state.target[pos]==="\n"
-    ){
-
         pos++;
 
     }
 
 
-    if(pos !== input.value.length){
+    if(pos !== input.selectionStart){
 
-        input.value =
-            input.value +
-            state.target.slice(
-                input.value.length,
-                pos
-            );
+        input.selectionStart =
+        input.selectionEnd =
+            pos;
 
     }
-
 }
-
-        pos++;
-
-    }
-
-}
-
 
 
 function render(){
@@ -418,8 +397,7 @@ while(
 
 
 const display =
-typed +
-state.target.slice(cursor);
+    state.target;
 
 
     const result =
@@ -465,7 +443,7 @@ state.target.slice(cursor);
 
 
 
-        if(i < typed.length){
+        if(i < input.value.length){
 
 
             if(state.lang==="korean"){
@@ -480,7 +458,7 @@ state.target.slice(cursor);
             else{
 
                 span.classList.add(
-                    typed[i]===state.target[i]
+                    typed[i] === display[i]
                     ?
                     "correct"
                     :
@@ -524,11 +502,11 @@ state.target.slice(cursor);
 
 
     const progress =
-        Math.min(
-            typed.length /
-            Math.max(state.target.length,1),
-            1
-        ) * 100;
+Math.min(
+    cursor /
+    Math.max(state.target.length,1),
+    1
+) * 100;
 
 
 
@@ -558,8 +536,6 @@ if(current){
     return result;
 
 }
-id="part3"
-
 function tick(){
 
     if(!state.started)
@@ -767,9 +743,16 @@ e=>{
 
 
 
-        insertText(
-            "\n".repeat(count)
-        );
+        input.selectionStart =
+input.selectionEnd =
+    pos + count;
+
+
+input.dispatchEvent(
+    new Event("input",{
+        bubbles:true
+    })
+);
 
     }
 
