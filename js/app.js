@@ -10,7 +10,15 @@
   function bindNav(){ app.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{lang=b.dataset.lang; menu();}); }
   function home(){ app.innerHTML=`${nav()}<section class="panel"><h1>타자 연습</h1><p class="meta">언어를 선택해 문장 연습을 시작하세요.</p></section>`; bindNav(); }
   function menu(){ const set=data[lang]||{works:[],shortPool:[]}; app.innerHTML=`${nav()}<section class="panel"><h1>${lang==='korean'?'한국어':lang==='english'?'English':'日本語'} 연습</h1><div class="list"><button id="random">무작위 문장</button>${set.works.map((w,i)=>`<button data-work="${i}">${esc(w.title||'제목 없음')} <span class="meta">${esc(w.author||'')}</span></button>`).join('')}</div></section>`; bindNav(); app.querySelector('#random').onclick=()=>start(set.shortPool[Math.floor(Math.random()*set.shortPool.length)]); app.querySelectorAll('[data-work]').forEach(b=>b.onclick=()=>start(set.works[Number(b.dataset.work)])); }
-  function start(next){ item=next; finished=false; started=0; clearInterval(timer); const target=norm(lang==='japanese'?(item.reading||item.text):(item.content||item.text)); app.innerHTML=`${nav()}<section class="panel"><h2>${esc(item.title||'무작위 문장')}</h2><div class="stats"><span>진행률 <b id="progress">0%</b></span><span>정확도 <b id="accuracy">100%</b></span><span>CPM <b id="cpm">0</b></span><span>시간 <b id="time">0:00</b></span></div><div class="bar"><i id="fill"></i></div><div class="stage" id="stage"><div class="text" id="text"></div><textarea class="capture" id="capture" aria-label="타자 입력" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div><div class="actions"><button id="restart">다시하기</button><button id="exit">종료</button></div></section>`; bindNav(); const input=app.querySelector('#capture'), text=app.querySelector('#text'); let composing=false, errors=0, keys=0;
+  function start(next){ item=next; finished=false; started=0; clearInterval(timer); const raw = lang === 'japanese'
+    ? (item.reading || item.text)
+    : (item.content || item.text);
+
+console.log("RAW =", JSON.stringify(raw));
+
+const target = norm(raw);
+
+console.log("TARGET =", JSON.stringify(target)); app.innerHTML=`${nav()}<section class="panel"><h2>${esc(item.title||'무작위 문장')}</h2><div class="stats"><span>진행률 <b id="progress">0%</b></span><span>정확도 <b id="accuracy">100%</b></span><span>CPM <b id="cpm">0</b></span><span>시간 <b id="time">0:00</b></span></div><div class="bar"><i id="fill"></i></div><div class="stage" id="stage"><div class="text" id="text"></div><textarea class="capture" id="capture" aria-label="타자 입력" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div><div class="actions"><button id="restart">다시하기</button><button id="exit">종료</button></div></section>`; bindNav(); const input=app.querySelector('#capture'), text=app.querySelector('#text'); let composing=false, errors=0, keys=0;
 const render = () => {
     const typed = input.value;
     const display = typed + target.slice(typed.length);
@@ -58,6 +66,16 @@ const render = () => {
 };    const tick=()=>{if(!started)return;const sec=(Date.now()-started)/1000, typed=input.value;let good=0;if(lang==='korean')good=Hangul.evaluate(target,typed).correctJamoCount;else for(let i=0;i<typed.length;i++)if(typed[i]===target[i])good++;app.querySelector('#cpm').textContent=Math.round(good/Math.max(sec/60,1/60));app.querySelector('#time').textContent=`${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,'0')}`;};
     const done=()=>{if(finished)return;finished=true;clearInterval(timer);input.blur();app.querySelector('#stage').insertAdjacentHTML('beforeend','<p class="meta">완료되었습니다.</p>');};
     input.addEventListener('input',e=>{if(!started){started=Date.now();timer=setInterval(tick,500);}keys=Math.max(keys,input.value.length); const r=render(); errors=lang==='korean'?r.kr.wrongJamoCount:[...input.value].filter((c,i)=>c!==target[i]).length;app.querySelector('#accuracy').textContent=`${Math.max(0,Math.round((keys-errors)/Math.max(keys,1)*100))}%`; if(!e.isComposing&&!composing&&((lang==='korean'&&r.kr.done)||(lang!=='korean'&&r.typed===target)))done();});
+    input.addEventListener("keydown", (e) => {
+    if (
+        [" ", "Enter", "ArrowRight"].includes(e.key) &&
+        target[input.value.length] === "\n"
+    ) {
+        e.preventDefault();
+        input.value += "\n";
+        input.dispatchEvent(new Event("input"));
+    }
+});
     input.addEventListener('compositionstart',()=>{composing=true;render();}); input.addEventListener('compositionupdate',render); input.addEventListener('compositionend',()=>{composing=false;render();}); app.querySelector('#stage').onclick=()=>input.focus(); app.querySelector('#restart').onclick=()=>start(item);app.querySelector('#exit').onclick=menu;window.onkeydown=e=>{if(e.key==='Escape')menu();};render();input.focus(); }
   home();
 })();
