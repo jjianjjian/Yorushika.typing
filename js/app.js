@@ -1,103 +1,700 @@
 (() => {
-  const app = document.querySelector('#app');
-  const data = window.DATA_MANIFEST || {};
-  let lang = 'korean', item = null, timer = null, started = 0, finished = false;
-  const norm = s => String(s || '')
-  .replace(/\r\n/g, '\n')
-  .trim();
-  const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  const nav = () => `<div class="nav"><div class="langs">${['korean','english','japanese'].map(x=>`<button data-lang="${x}" class="${x===lang?'active':''}">${x==='korean'?'한국어':x==='english'?'English':'日本語'}</button>`).join('')}</div></div>`;
-  function bindNav(){ app.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{lang=b.dataset.lang; menu();}); }
-  function home(){ app.innerHTML=`${nav()}<section class="panel"><h1>타자 연습</h1><p class="meta">언어를 선택해 문장 연습을 시작하세요.</p></section>`; bindNav(); }
-  function menu(){ const set=data[lang]||{works:[],shortPool:[]}; app.innerHTML=`${nav()}<section class="panel"><h1>${lang==='korean'?'한국어':lang==='english'?'English':'日本語'} 연습</h1><div class="list"><button id="random">무작위 문장</button>${set.works.map((w,i)=>`<button data-work="${i}">${esc(w.title||'제목 없음')} <span class="meta">${esc(w.author||'')}</span></button>`).join('')}</div></section>`; bindNav(); app.querySelector('#random').onclick=()=>start(set.shortPool[Math.floor(Math.random()*set.shortPool.length)]); app.querySelectorAll('[data-work]').forEach(b=>b.onclick=()=>start(set.works[Number(b.dataset.work)])); }
-  function start(next){ item=next; finished=false; started=0; clearInterval(timer); const raw = lang === 'japanese'
-    ? (item.reading || item.text)
-    : (item.content || item.text);
 
-console.log("RAW =", JSON.stringify(raw));
+const app = document.querySelector("#app");
+const data = window.DATA_MANIFEST || {};
 
-const target = norm(raw);
+let lang = "korean";
+let item = null;
 
-console.log("TARGET =", JSON.stringify(target)); app.innerHTML=`${nav()}<section class="panel"><h2>${esc(item.title||'무작위 문장')}</h2><div class="stats"><span>진행률 <b id="progress">0%</b></span><span>정확도 <b id="accuracy">100%</b></span><span>CPM <b id="cpm">0</b></span><span>시간 <b id="time">0:00</b></span></div><div class="bar"><i id="fill"></i></div><div class="stage" id="stage"><div class="text" id="text"></div><textarea class="capture" id="capture" aria-label="타자 입력" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div><div class="actions"><button id="restart">다시하기</button><button id="exit">종료</button></div></section>`; bindNav(); const input=app.querySelector('#capture'), text=app.querySelector('#text'); let composing=false, errors=0, keys=0;
-const render = () => {
-    const typed = input.value;
+let timer = null;
+let started = 0;
+let finished = false;
 
-let pos = typed.length;
 
-// 줄바꿈이 연속되면 자동으로 모두 건너뜀
-while (target[pos] === "\n") {
-    pos++;
-}
+const norm = s =>
+    String(s || "")
+    .replace(/\r\n/g,"\n")
+    .trim();
 
-const display = typed + target.slice(pos);
-    const frag = document.createDocumentFragment();
-    const kr = lang === 'korean' ? Hangul.evaluate(target, typed) : null;
 
-    for (let i = 0; i < display.length; i++) {
-        // 줄바꿈이면 <br> 생성
-        if (display[i] === '\n') {
-            frag.appendChild(document.createElement('br'));
-            continue;
-        }
+const esc = s =>
+    String(s).replace(/[&<>]/g,c=>({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;"
+    }[c]));
 
-        const s = document.createElement('span');
-        s.className = 'ch';
-        s.textContent = display[i];
 
-        if (i < typed.length) {
-            if (lang === 'korean') {
-                s.classList.add(kr.charStatus[i] || 'wrong');
-            } else {
-                s.classList.add(
-                    typed[i] === target[i] ? 'correct' : 'wrong'
-                );
-            }
-        } else if (i === typed.length) {
-            s.classList.add('current', 'pending');
-        } else {
-            s.classList.add('pending');
-        }
 
-        frag.appendChild(s);
-    }
+const nav = () => `
+<div class="nav">
+<div class="langs">
+${["korean","english","japanese"].map(x=>`
+<button data-lang="${x}" class="${x===lang?"active":""}">
+${x==="korean"?"한국어":x==="english"?"English":"日本語"}
+</button>
+`).join("")}
+</div>
+</div>
+`;
 
-    text.replaceChildren(frag);
 
-    const pct =
-        Math.min(typed.length, target.length) /
-        Math.max(target.length, 1);
 
-    app.querySelector('#fill').style.width = `${pct * 100}%`;
-    app.querySelector('#progress').textContent = `${Math.round(pct * 100)}%`;
+function bindNav(){
 
-    return { typed, kr };
-};    const tick=()=>{if(!started)return;const sec=(Date.now()-started)/1000, typed=input.value;let good=0;if(lang==='korean')good=Hangul.evaluate(target,typed).correctJamoCount;else for(let i=0;i<typed.length;i++)if(typed[i]===target[i])good++;app.querySelector('#cpm').textContent=Math.round(good/Math.max(sec/60,1/60));app.querySelector('#time').textContent=`${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,'0')}`;};
-    const done=()=>{if(finished)return;finished=true;clearInterval(timer);input.blur();app.querySelector('#stage').insertAdjacentHTML('beforeend','<p class="meta">완료되었습니다.</p>');};
-    input.addEventListener('input',e=>{if(!started){started=Date.now();timer=setInterval(tick,500);}keys=Math.max(keys,input.value.length); const r=render(); errors=lang==='korean'?r.kr.wrongJamoCount:[...input.value].filter((c,i)=>c!==target[i]).length;app.querySelector('#accuracy').textContent=`${Math.max(0,Math.round((keys-errors)/Math.max(keys,1)*100))}%`; if(!e.isComposing&&!composing&&((lang==='korean'&&r.kr.done)||(lang!=='korean'&&r.typed===target)))done();});
-    input.addEventListener("keydown", (e) => {
-    if (e.key !== " ") return;
+app.querySelectorAll("[data-lang]")
+.forEach(btn=>{
 
-    let pos = input.value.length;
+btn.onclick=()=>{
 
-    // 줄바꿈이 아니면 원래 Space 입력
-    if (target[pos] !== "\n") return;
+lang=btn.dataset.lang;
+menu();
 
-    e.preventDefault();
+};
 
-    // 연속된 줄바꿈 전부 통과
-    while (target[pos] === "\n") {
-        input.value += "\n";
-        pos++;
-    }
-
-    input.dispatchEvent(new Event("input", {
-        bubbles: true
-    }));
 });
-// 줄바꿈만 있는 구간은 자동 통과
-while (target[input.value.length] === "\n") {
-    input.value += "\n";
+
 }
-    input.addEventListener('compositionstart',()=>{composing=true;render();}); input.addEventListener('compositionupdate',render); input.addEventListener('compositionend',()=>{composing=false;render();}); app.querySelector('#stage').onclick=()=>input.focus(); app.querySelector('#restart').onclick=()=>start(item);app.querySelector('#exit').onclick=menu;window.onkeydown=e=>{if(e.key==='Escape')menu();};render();input.focus(); }
-  home();
+
+
+
+function home(){
+
+app.innerHTML=`
+
+${nav()}
+
+<section class="panel">
+
+<h1>타자 연습</h1>
+
+<p class="meta">
+언어를 선택해 문장 연습을 시작하세요.
+</p>
+
+</section>
+
+`;
+
+bindNav();
+
+}
+
+
+
+
+function menu(){
+
+const set=data[lang] || {
+works:[],
+shortPool:[]
+};
+
+
+
+app.innerHTML=`
+
+${nav()}
+
+<section class="panel">
+
+<h1>
+${lang==="korean"
+?"한국어"
+:lang==="english"
+?"English"
+:"日本語"} 연습
+</h1>
+
+
+<div class="list">
+
+<button id="random">
+무작위 문장
+</button>
+
+
+${set.works.map((w,i)=>`
+
+<button data-work="${i}">
+${esc(w.title || "제목 없음")}
+<span class="meta">
+${esc(w.author || "")}
+</span>
+</button>
+
+`).join("")}
+
+</div>
+
+</section>
+
+`;
+
+
+
+bindNav();
+
+
+
+app.querySelector("#random").onclick=()=>{
+
+if(set.shortPool.length){
+
+start(
+set.shortPool[
+Math.floor(Math.random()*set.shortPool.length)
+]
+);
+
+}
+
+};
+
+
+
+app.querySelectorAll("[data-work]")
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+start(
+set.works[
+Number(btn.dataset.work)
+]
+);
+
+};
+
+});
+
+}
+
+
+
+
+
+
+function start(next){
+
+item=next;
+
+finished=false;
+
+started=0;
+
+clearInterval(timer);
+
+
+
+const raw =
+lang==="japanese"
+?
+(item.reading || item.text)
+:
+(item.content || item.text);
+
+
+
+const lines=norm(raw).split("\n");
+
+let lineIndex=0;
+
+let inputValue="";
+
+
+
+app.innerHTML=`
+
+${nav()}
+
+
+<section class="panel">
+
+
+<h2>${esc(item.title || "무작위 문장")}</h2>
+
+
+<div class="stats">
+
+<span>
+진행률 <b id="progress">0%</b>
+</span>
+
+<span>
+정확도 <b id="accuracy">100%</b>
+</span>
+
+<span>
+CPM <b id="cpm">0</b>
+</span>
+
+<span>
+시간 <b id="time">0:00</b>
+</span>
+
+</div>
+
+
+<div class="bar">
+<i id="fill"></i>
+</div>
+
+
+<div class="stage" id="stage"></div>
+
+
+<div class="actions">
+
+<button id="restart">
+다시하기
+</button>
+
+<button id="exit">
+종료
+</button>
+
+</div>
+
+
+</section>
+
+`;
+
+
+
+bindNav();
+
+
+
+const stage=app.querySelector("#stage");
+
+
+const input=document.createElement("input");
+
+input.className="capture";
+
+input.autocomplete="off";
+
+input.spellcheck=false;
+
+let composing = false;
+
+
+input.addEventListener("input",()=>{
+
+    inputValue=input.value;
+
+
+    if(!started){
+
+        started=Date.now();
+
+        timer=setInterval(updateTime,500);
+
+    }
+
+
+    if(!composing){
+
+        render();
+
+        if(input.value===lines[lineIndex]){
+
+            nextLine();
+
+        }
+
+    }
+
+});
+
+input.addEventListener("compositionstart",()=>{
+
+    composing=true;
+
+});
+
+
+
+input.addEventListener("compositionend",()=>{
+
+    composing=false;
+
+
+    if(input.value===lines[lineIndex]){
+
+        nextLine();
+
+    }
+    else{
+
+        render();
+
+    }
+
+});
+
+
+
+input.addEventListener("keydown",e=>{
+
+    if(e.key==="Enter"){
+
+        e.preventDefault();
+
+
+        if(input.value===lines[lineIndex]){
+
+            nextLine();
+
+        }
+
+    }
+
+});
+
+
+
+function render(){
+
+    while(stage.firstChild){
+    stage.removeChild(stage.firstChild);
+}
+
+
+    lines.forEach((line,index)=>{
+
+
+        const row=document.createElement("div");
+
+        row.className="line";
+
+
+
+        if(index < lineIndex){
+
+
+            row.classList.add("done");
+
+
+            for(const c of line){
+
+
+                const span=document.createElement("span");
+
+                span.className="ch correct";
+
+                span.textContent=c;
+
+                row.appendChild(span);
+
+
+            }
+
+
+        }
+
+
+        else if(index === lineIndex){
+
+
+            const typed=input.value;
+
+
+            for(let i=0;i<line.length;i++){
+
+
+                const span=document.createElement("span");
+
+                span.className="ch";
+
+
+                span.textContent=line[i];
+
+
+
+                if(i < typed.length){
+
+
+                    if(lang==="korean"){
+
+
+                        const result =
+                        Hangul.evaluate(
+                            line,
+                            typed
+                        );
+
+
+                        span.classList.add(
+                            result.charStatus[i] || "wrong"
+                        );
+
+
+                    }
+                    else{
+
+
+                        span.classList.add(
+                            typed[i]===line[i]
+                            ?
+                            "correct"
+                            :
+                            "wrong"
+                        );
+
+
+                    }
+
+
+                }
+                else{
+
+                    span.classList.add("pending");
+
+                }
+
+
+                row.appendChild(span);
+
+
+            }
+
+
+
+            row.appendChild(input);
+
+
+        }
+
+
+        else{
+
+
+            row.classList.add("pending");
+
+
+            for(const c of line){
+
+
+                const span=document.createElement("span");
+
+                span.className="ch pending";
+
+                span.textContent=c;
+
+                row.appendChild(span);
+
+
+            }
+
+
+        }
+
+
+
+        stage.appendChild(row);
+
+
+    });
+
+
+    updateProgress();
+
+input.focus();
+
+}
+
+
+
+
+function nextLine(){
+
+
+    lineIndex++;
+
+
+    input.value="";
+
+
+    if(lineIndex>=lines.length){
+
+
+        finish();
+
+        return;
+
+    }
+
+
+    render();
+
+
+}
+
+
+
+
+function updateProgress(){
+
+
+    let total=0;
+
+    let done=0;
+
+
+
+    lines.forEach((line,i)=>{
+
+
+        total+=line.length;
+
+
+        if(i < lineIndex){
+
+            done+=line.length;
+
+        }
+
+
+        if(i===lineIndex){
+
+            done+=input.value.length;
+
+        }
+
+
+    });
+
+
+
+    const percent =
+    done / Math.max(total,1) * 100;
+
+
+
+    app.querySelector("#progress")
+    .textContent =
+    Math.round(percent)+"%";
+
+
+    app.querySelector("#fill")
+    .style.width =
+    percent+"%";
+
+
+}
+
+
+
+
+function updateTime(){
+
+
+    if(!started)
+        return;
+
+
+    const sec =
+    (Date.now()-started)/1000;
+
+
+
+    app.querySelector("#time")
+    .textContent =
+    `${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,"0")}`;
+
+
+
+    app.querySelector("#cpm")
+    .textContent =
+    Math.round(
+        input.value.length /
+        Math.max(sec/60,1/60)
+    );
+
+
+}
+
+
+
+
+function finish(){
+
+
+    if(finished)
+        return;
+
+
+    finished=true;
+
+
+    clearInterval(timer);
+
+
+
+    stage.insertAdjacentHTML(
+        "beforeend",
+        `
+        <p class="meta">
+        완료되었습니다.
+        </p>
+        `
+    );
+
+
+    input.blur();
+
+
+}
+
+
+
+app.querySelector("#restart").onclick=()=>{
+
+    start(item);
+
+};
+
+
+
+app.querySelector("#exit").onclick=()=>{
+
+    menu();
+
+};
+
+
+
+app.querySelector("#stage").onclick=()=>{
+
+    input.focus();
+
+};
+
+
+
+window.onkeydown=e=>{
+
+    if(e.key==="Escape"){
+
+        menu();
+
+    }
+
+};
+
+
+
+render();
+
+
+}
+
+
+
+home();
+
+
 })();
